@@ -1,7 +1,8 @@
 import os
+import openshot
 
 from PyQt5.QtCore import QMimeData, Qt, pyqtSignal
-from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtGui import QStandardItemModel, QStandardItem, QIcon
 from PyQt5.QtWidgets import QMessageBox
 
 from classes import updates
@@ -24,13 +25,16 @@ class FileStandardItemModel(QStandardItemModel):
     def mimeData(self, indexes):
         # Create MimeData for drag operation
         data = QMimeData()
-        
+
+        # Get list of all selected file ids
         files = []
-        for index in indexes:
-            selected_row = self.itemFromIndex(index).row()
+        for item in indexes:
+            selected_row = self.itemFromIndex(item).row()
             files.append(self.item(selected_row, 5).text())
         data.setText(json.dumps(files))
         data.setHtml("clip")
+
+        # Return Mimedata
         return data
 
 class FilesModel(updates.UpdateInterface):
@@ -92,12 +96,12 @@ class FilesModel(updates.UpdateInterface):
                         and not win.filesFilter.text().lower() in tags.lower() \
                         and not win.filesFilter.text().lower() in name.lower():
                     continue
-                    
+            
             # Generate thumbnail for file (if needed)
             if (file.data["media_type"] == "video" or file.data["media_type"] == "image"):
                 # Determine thumb path
                 thumb_path = os.path.join(info.THUMBNAIL_PATH, "{}.png".format(file.id))
-                
+                #log.info("thumb_path: {}".format(thumb_path))
                 # Check if thumb exists
                 if not os.path.exists(thumb_path):
                 
@@ -124,16 +128,17 @@ class FilesModel(updates.UpdateInterface):
                             fps_float = float(fps["num"]) / float(fps["den"])
                             thumbnail_frame = round(float(file.data["start"]) * fps_float) + 1
                         
-                        reader.GetFrame(thumbnail_frame).Thumbnail(thumb_path, 98, 64, os.path.join(info.THUMBNAIL_PATH, "mask.png"),
-                            overlay_path, "#000", False)
-                            
+                        reader.GetFrame(thumbnail_frame).Thumbnail(thumb_path, 98, 64, os.path.join(info.IMAGES_PATH, "mask.png"),
+                                                     overlay_path, "#000", False)
+                        
                         reader.Close()
                         clip.Close()
                     except:
-                        msg = QMessageBox()
-                        msg.setText(_("{} is not a valid video, audio, or image file.".format(filename)))
-                        msg.exec_()
-                        continue
+                        #msg = QMessageBox()
+                        #msg.setText(_("{} is not a valid video, audio, or image file.".format(filename)))
+                        #msg.exec_()
+                        #continue
+                        raise
             else:
                 # Audio file
                 thumb_path = os.path.join(info.PATH, "images", "AudioThumbnail.png")
@@ -144,7 +149,7 @@ class FilesModel(updates.UpdateInterface):
             col = QStandardItem()
             col.setIcon(QIcon(thumb_path))
             col.setText((name[:9] + "...") if len(name) > 10 else name)
-            col.setTooltip(filename)
+            col.setToolTip(filename)
             col.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsDragEnabled)
             row.append(col)
             
@@ -185,6 +190,7 @@ class FilesModel(updates.UpdateInterface):
             
             # Append ROW to MODEL (if does not already exist in model)
             if not file.data["id"] in self.model_ids:
+                #log.info("Add new row to model id:{}".format(file.data["id"]))
                 self.model.appendRow(row)
                 self.model_ids[file.data["id"]] = file.data["id"]
             
@@ -204,7 +210,7 @@ class FilesModel(updates.UpdateInterface):
         app.updates.add_listener(self)
         
         # Create standard model
-        self.model = FileStandardItemModel()
+        self.model = FileStandardItemModel(*args)
         self.model.setColumnCount(6)
         self.model_ids = {}
         self.ignore_update_signal = False

@@ -97,9 +97,13 @@ class MainWindow(QMainWindow):
         files = QFileDialog.getOpenFileNames(self, _("Import File..."), recommended_path)[0]
         for file_path in files:
             self.filesTreeView.add_file(file_path)
-            self.filesTreeView.refresh_view()
+            #self.filesTreeView.refresh_view()
             log.info("Imported media file {}".format(file_path))
         
+    
+    def resize_contents(self):
+        if self.filesTreeView:
+            self.filesTreeView.resize_contents()
     
     def keyPressEvent(self, event):
         """Receive key press events for the widget."""

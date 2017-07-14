@@ -2,7 +2,8 @@ import os
 import openshot
 
 from PyQt5.QtCore import QSize
-from PyQt5.QtWidgets import QListView, QAbstractItemView, QMessageBox
+from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import QListView, QAbstractItemView, QMessageBox, QMenu
 
 from classes.app import get_app
 from classes.logger import log
@@ -17,6 +18,21 @@ except ImportError:
 class FilesListView(QListView):
     """ A ListView QWidget used on the main window """
     drag_item_size = 48
+    
+    def updateSelection(self):
+        
+    
+    def contextMenuEvent(self, event):
+        self.updateSelection()
+        
+        menu = QMenu(self)
+        menu.addAction(self.win.actionImportFiles)
+        #menu.addAction(self.win.actionDetailsView)
+        
+        menu.exec_(QCursor.pos())
+    
+    def resize_contents(self):
+        pass
     
     def refresh_view(self):
         self.files_model.update_model()
@@ -82,6 +98,25 @@ class FilesListView(QListView):
                 
         file = File()
         file.data = file_data
+        
+        # Is this file an image sequence / animation?
+        image_seq_details = None #self.get_image_sequence_details(filepath)
+        if image_seq_details:
+            # Update file with correct path
+            folder_path = image_seq_details["folder_path"]
+            file_name = image_seq_details["file_path"]
+            base_name = image_seq_details["base_name"]
+            fixlen = image_seq_details["fixlen"]
+            digits = image_seq_details["digits"]
+            extension = image_seq_details["extension"]
+            
+            if not fixlen:
+                zero_pattern = "%d"
+            else:
+                zero_pattern = "%%0%sd" % digits
+            
+            # Generate the regex pattern for this image sequence
+            
             
         file.save()
         return True
